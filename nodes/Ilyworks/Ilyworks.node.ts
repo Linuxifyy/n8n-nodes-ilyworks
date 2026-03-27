@@ -35,8 +35,9 @@ export class Ilyworks implements INodeType {
         noDataExpression: true,
         options: [
           { name: 'Image', value: 'image' },
-          { name: 'Video', value: 'video' },
           { name: 'Job', value: 'job' },
+          { name: 'Sign', value: 'sign' },
+          { name: 'Video', value: 'video' },
         ],
         default: 'image',
       },
@@ -50,6 +51,30 @@ export class Ilyworks implements INodeType {
         displayOptions: { show: { resource: ['image'] } },
         options: [
           {
+            name: 'Convert PDF',
+            value: 'convertPdf',
+            description: 'Convert a PDF page to an image',
+            action: 'Convert a PDF to an image',
+          },
+          {
+            name: 'Get Info',
+            value: 'info',
+            description: 'Get metadata (width, height, format) for an image URL',
+            action: 'Get image metadata',
+          },
+          {
+            name: 'Placeholder',
+            value: 'placeholder',
+            description: 'Generate a placeholder from an image URL',
+            action: 'Generate an image placeholder',
+          },
+          {
+            name: 'Transform (URL Path)',
+            value: 'transformPath',
+            description: 'Apply transforms via URL path and return the resulting image',
+            action: 'Transform an image via URL path',
+          },
+          {
             name: 'Transform URL',
             value: 'transform',
             description: 'Fetch, transform, and cache an image from a URL',
@@ -60,12 +85,6 @@ export class Ilyworks implements INodeType {
             value: 'upload',
             description: 'Upload a binary image and apply transformations',
             action: 'Upload and transform an image',
-          },
-          {
-            name: 'Get Info',
-            value: 'info',
-            description: 'Get metadata (width, height, format) for an image URL',
-            action: 'Get image metadata',
           },
         ],
         default: 'transform',
@@ -80,10 +99,10 @@ export class Ilyworks implements INodeType {
         displayOptions: { show: { resource: ['video'] } },
         options: [
           {
-            name: 'Transcode',
-            value: 'transcode',
-            description: 'Convert, resize, or trim a video',
-            action: 'Transcode a video',
+            name: 'Extract Thumbnail',
+            value: 'thumbnail',
+            description: 'Extract a single frame from a video as an image',
+            action: 'Extract a video thumbnail',
           },
           {
             name: 'Platform Export',
@@ -92,10 +111,16 @@ export class Ilyworks implements INodeType {
             action: 'Export video for a platform',
           },
           {
-            name: 'Extract Thumbnail',
-            value: 'thumbnail',
-            description: 'Extract a single frame from a video as an image',
-            action: 'Extract a video thumbnail',
+            name: 'Sprite Sheet',
+            value: 'sprite',
+            description: 'Generate a sprite sheet of frames from a video',
+            action: 'Generate a video sprite sheet',
+          },
+          {
+            name: 'Transcode',
+            value: 'transcode',
+            description: 'Convert, resize, or trim a video',
+            action: 'Transcode a video',
           },
         ],
         default: 'transcode',
@@ -110,16 +135,16 @@ export class Ilyworks implements INodeType {
         displayOptions: { show: { resource: ['job'] } },
         options: [
           {
-            name: 'Get Status',
-            value: 'status',
-            description: 'Poll a video job for its current status and progress',
-            action: 'Get job status',
-          },
-          {
             name: 'Download Result',
             value: 'download',
             description: 'Download the output file of a completed job as binary',
             action: 'Download job result',
+          },
+          {
+            name: 'Get Status',
+            value: 'status',
+            description: 'Poll a video job for its current status and progress',
+            action: 'Get job status',
           },
           {
             name: 'Wait Until Done',
@@ -131,6 +156,24 @@ export class Ilyworks implements INodeType {
         default: 'status',
       },
 
+      // ── Sign operations ───────────────────────────────────────────────────
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        displayOptions: { show: { resource: ['sign'] } },
+        options: [
+          {
+            name: 'Sign URL',
+            value: 'signUrl',
+            description: 'Sign a transform URL so it can be used without an API key',
+            action: 'Sign a URL',
+          },
+        ],
+        default: 'signUrl',
+      },
+
       // ── Shared: Source URL ────────────────────────────────────────────────
       {
         displayName: 'Image URL',
@@ -140,7 +183,7 @@ export class Ilyworks implements INodeType {
         required: true,
         description: 'URL of the source image to transform',
         displayOptions: {
-          show: { resource: ['image'], operation: ['transform', 'info'] },
+          show: { resource: ['image'], operation: ['transform', 'info', 'placeholder'] },
         },
       },
       {
@@ -151,7 +194,7 @@ export class Ilyworks implements INodeType {
         required: true,
         description: 'URL of the source video',
         displayOptions: {
-          show: { resource: ['video'], operation: ['transcode', 'repost', 'thumbnail'] },
+          show: { resource: ['video'], operation: ['transcode', 'repost', 'thumbnail', 'sprite'] },
         },
       },
 
@@ -210,8 +253,10 @@ export class Ilyworks implements INodeType {
         name: 'fit',
         type: 'options',
         options: [
+          { name: 'Attention (Smart Crop)', value: 'attention' },
           { name: 'Contain', value: 'contain' },
           { name: 'Cover (Default)', value: 'cover' },
+          { name: 'Entropy (Smart Crop)', value: 'entropy' },
           { name: 'Fill', value: 'fill' },
           { name: 'Inside', value: 'inside' },
           { name: 'Outside', value: 'outside' },
@@ -295,6 +340,121 @@ export class Ilyworks implements INodeType {
         },
       },
 
+      // ── Image: placeholder params ─────────────────────────────────────────
+      {
+        displayName: 'Type',
+        name: 'placeholderType',
+        type: 'options',
+        options: [
+          { name: 'Data URL', value: 'dataurl' },
+          { name: 'Dominant Color', value: 'color' },
+          { name: 'SVG', value: 'svg' },
+        ],
+        default: 'dataurl',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['placeholder'] },
+        },
+      },
+
+      // ── Image: convert PDF params ─────────────────────────────────────────
+      {
+        displayName: 'PDF URL',
+        name: 'pdfUrl',
+        type: 'string',
+        default: '',
+        description: 'URL of the PDF to convert (leave empty to use binary input)',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['convertPdf'] },
+        },
+      },
+      {
+        displayName: 'Binary Property',
+        name: 'pdfBinaryProperty',
+        type: 'string',
+        default: 'data',
+        description: 'Name of the binary property containing the PDF file (used when PDF URL is empty)',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['convertPdf'] },
+        },
+      },
+      {
+        displayName: 'PDF Options',
+        name: 'pdfOptions',
+        type: 'collection',
+        placeholder: 'Add option',
+        default: {},
+        displayOptions: {
+          show: { resource: ['image'], operation: ['convertPdf'] },
+        },
+        options: [
+          {
+            displayName: 'Density (DPI)',
+            name: 'density',
+            type: 'number',
+            typeOptions: { minValue: 72, maxValue: 300 },
+            default: 72,
+            description: 'Render density in DPI (72–300)',
+          },
+          {
+            displayName: 'Format',
+            name: 'format',
+            type: 'options',
+            options: [
+              { name: 'JPEG', value: 'jpeg' },
+              { name: 'PNG', value: 'png' },
+              { name: 'WebP', value: 'webp' },
+            ],
+            default: 'jpeg',
+          },
+          {
+            displayName: 'Page',
+            name: 'page',
+            type: 'number',
+            default: 0,
+            description: 'Zero-based page index to render',
+          },
+          {
+            displayName: 'Quality',
+            name: 'quality',
+            type: 'number',
+            typeOptions: { minValue: 1, maxValue: 100 },
+            default: 80,
+            description: 'Output quality (1–100)',
+          },
+          {
+            displayName: 'Width (Px)',
+            name: 'width',
+            type: 'number',
+            default: 0,
+            description: 'Output width in pixels (0 = keep original)',
+          },
+        ],
+      },
+
+      // ── Image: transform path params ──────────────────────────────────────
+      {
+        displayName: 'Source URL',
+        name: 'sourceUrl',
+        type: 'string',
+        default: '',
+        required: true,
+        description: 'URL of the source image',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['transformPath'] },
+        },
+      },
+      {
+        displayName: 'Transforms',
+        name: 'transforms',
+        type: 'string',
+        default: '',
+        required: true,
+        description: 'Comma-separated transform string, e.g. "w_400,f_webp,q_80"',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['transformPath'] },
+        },
+      },
+
       // ── Video: transcode params ───────────────────────────────────────────
       {
         displayName: 'Output Format',
@@ -319,6 +479,7 @@ export class Ilyworks implements INodeType {
           show: { resource: ['video'], operation: ['transcode'] },
         },
         options: [
+          { displayName: 'Callback URL', name: 'callbackUrl', type: 'string', default: '', description: 'Webhook URL to call when the job completes' },
           { displayName: 'Framerate (Fps)', name: 'fps', type: 'number', default: 0 },
           { displayName: 'Height (Px)', name: 'h', type: 'number', default: 0 },
           { displayName: 'Include Audio', name: 'audio', type: 'boolean', default: true },
@@ -358,21 +519,22 @@ export class Ilyworks implements INodeType {
           show: { resource: ['video'], operation: ['repost'] },
         },
         options: [
+          { displayName: 'Callback URL', name: 'callbackUrl', type: 'string', default: '', description: 'Webhook URL to call when the job completes' },
           {
             displayName: 'Effect',
             name: 'effect',
             type: 'options',
             options: [
-              { name: 'None', value: 'none' },
               { name: 'Grain', value: 'grain' },
-              { name: 'Vignette', value: 'vignette' },
+              { name: 'None', value: 'none' },
               { name: 'Saturation Boost', value: 'saturation_boost' },
+              { name: 'Vignette', value: 'vignette' },
             ],
             default: 'none',
           },
-          { displayName: 'Watermark Text', name: 'watermark', type: 'string', default: '' },
           { displayName: 'Normalize Audio (–23 LUFS)', name: 'audio_norm', type: 'boolean', default: true },
           { displayName: 'Strip Metadata', name: 'strip_meta', type: 'boolean', default: true },
+          { displayName: 'Watermark Text', name: 'watermark', type: 'string', default: '' },
         ],
       },
 
@@ -400,6 +562,23 @@ export class Ilyworks implements INodeType {
         displayOptions: {
           show: { resource: ['video'], operation: ['thumbnail'] },
         },
+      },
+
+      // ── Video: sprite sheet params ────────────────────────────────────────
+      {
+        displayName: 'Sprite Options',
+        name: 'spriteOptions',
+        type: 'collection',
+        placeholder: 'Add option',
+        default: {},
+        displayOptions: {
+          show: { resource: ['video'], operation: ['sprite'] },
+        },
+        options: [
+          { displayName: 'Columns', name: 'cols', type: 'number', default: 4, description: 'Number of columns in the sprite sheet' },
+          { displayName: 'Frame Count', name: 'count', type: 'number', default: 12, description: 'Total number of frames to capture' },
+          { displayName: 'Frame Width (Px)', name: 'width', type: 'number', default: 160, description: 'Width of each frame in pixels' },
+        ],
       },
 
       // ── Job params ────────────────────────────────────────────────────────
@@ -435,6 +614,25 @@ export class Ilyworks implements INodeType {
         default: 'data',
         description: 'Binary property name to write the downloaded video into',
         displayOptions: { show: { resource: ['job'], operation: ['download'] } },
+      },
+
+      // ── Sign: sign URL params ─────────────────────────────────────────────
+      {
+        displayName: 'URL to Sign',
+        name: 'signUrl',
+        type: 'string',
+        default: '',
+        required: true,
+        description: 'The transform URL to sign',
+        displayOptions: { show: { resource: ['sign'], operation: ['signUrl'] } },
+      },
+      {
+        displayName: 'TTL (Seconds)',
+        name: 'ttl',
+        type: 'number',
+        default: 3600,
+        description: 'How long the signed URL should remain valid',
+        displayOptions: { show: { resource: ['sign'], operation: ['signUrl'] } },
       },
     ],
   }
@@ -506,6 +704,95 @@ export class Ilyworks implements INodeType {
             )
             returnData.push({ json: response as IDataObject })
           }
+
+          else if (operation === 'placeholder') {
+            const url = this.getNodeParameter('url', i) as string
+            const type = this.getNodeParameter('placeholderType', i) as string
+            const response = await this.helpers.httpRequestWithAuthentication.call(
+              this, 'ilyworksApi',
+              { method: 'GET', url: `${baseUrl}/v1/image/placeholder`, qs: { url, type } },
+            )
+            returnData.push({ json: response as IDataObject })
+          }
+
+          else if (operation === 'convertPdf') {
+            const pdfUrl = this.getNodeParameter('pdfUrl', i) as string
+            const opts = this.getNodeParameter('pdfOptions', i) as IDataObject
+            const body: IDataObject = { ...stripFalsy(opts) }
+
+            if (pdfUrl) {
+              body.url = pdfUrl
+
+              const response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'POST', url: `${baseUrl}/v1/pdf/convert`, body, json: true, encoding: 'arraybuffer', returnFullResponse: true },
+              ) as { body: Buffer; headers: Record<string, string> }
+
+              const contentType = response.headers['content-type'] || 'image/jpeg'
+              const ext = contentType.split('/')[1]?.split(';')[0] || 'jpeg'
+              returnData.push({
+                json: {},
+                binary: {
+                  data: await this.helpers.prepareBinaryData(
+                    Buffer.from(response.body),
+                    `pdf_page.${ext}`,
+                    contentType,
+                  ),
+                },
+              })
+            } else {
+              const binaryProp = this.getNodeParameter('pdfBinaryProperty', i) as string
+              const binaryData = this.helpers.assertBinaryData(i, binaryProp)
+              const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProp)
+
+              const formData = new FormData()
+              formData.append('file', new Blob([buffer], { type: binaryData.mimeType || 'application/pdf' }), binaryData.fileName || 'upload.pdf')
+              for (const [key, val] of Object.entries(body)) {
+                formData.append(key, String(val))
+              }
+
+              const response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'POST', url: `${baseUrl}/v1/pdf/convert`, body: formData, encoding: 'arraybuffer', returnFullResponse: true },
+              ) as { body: Buffer; headers: Record<string, string> }
+
+              const contentType = response.headers['content-type'] || 'image/jpeg'
+              const ext = contentType.split('/')[1]?.split(';')[0] || 'jpeg'
+              returnData.push({
+                json: {},
+                binary: {
+                  data: await this.helpers.prepareBinaryData(
+                    Buffer.from(response.body),
+                    `pdf_page.${ext}`,
+                    contentType,
+                  ),
+                },
+              })
+            }
+          }
+
+          else if (operation === 'transformPath') {
+            const sourceUrl = this.getNodeParameter('sourceUrl', i) as string
+            const transforms = this.getNodeParameter('transforms', i) as string
+
+            const response = await this.helpers.httpRequestWithAuthentication.call(
+              this, 'ilyworksApi',
+              { method: 'GET', url: `${baseUrl}/v1/t/${transforms}/${encodeURIComponent(sourceUrl)}`, encoding: 'arraybuffer', returnFullResponse: true },
+            ) as { body: Buffer; headers: Record<string, string> }
+
+            const contentType = response.headers['content-type'] || 'image/webp'
+            const ext = contentType.split('/')[1]?.split(';')[0] || 'webp'
+            returnData.push({
+              json: {},
+              binary: {
+                data: await this.helpers.prepareBinaryData(
+                  Buffer.from(response.body),
+                  `transformed.${ext}`,
+                  contentType,
+                ),
+              },
+            })
+          }
         }
 
         // ── VIDEO ───────────────────────────────────────────────────────────
@@ -515,7 +802,9 @@ export class Ilyworks implements INodeType {
             const url = this.getNodeParameter('url', i) as string
             const format = this.getNodeParameter('format', i) as string
             const opts = this.getNodeParameter('videoOptions', i) as IDataObject
-            const body: IDataObject = { url, format, ...stripFalsy(opts) }
+            const { callbackUrl, ...restOpts } = opts
+            const body: IDataObject = { url, format, ...stripFalsy(restOpts as IDataObject) }
+            if (callbackUrl) body.callbackUrl = callbackUrl
 
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
@@ -528,7 +817,9 @@ export class Ilyworks implements INodeType {
             const url = this.getNodeParameter('url', i) as string
             const platform = this.getNodeParameter('platform', i) as string
             const opts = this.getNodeParameter('repostOptions', i) as IDataObject
-            const body: IDataObject = { url, platform, ...stripFalsy(opts) }
+            const { callbackUrl, ...restOpts } = opts
+            const body: IDataObject = { url, platform, ...stripFalsy(restOpts as IDataObject) }
+            if (callbackUrl) body.callbackUrl = callbackUrl
 
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
@@ -545,6 +836,18 @@ export class Ilyworks implements INodeType {
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
               { method: 'POST', url: `${baseUrl}/v1/video/thumbnail`, qs: { format }, body: { url, at }, json: true },
+            )
+            returnData.push({ json: response as IDataObject })
+          }
+
+          else if (operation === 'sprite') {
+            const url = this.getNodeParameter('url', i) as string
+            const opts = this.getNodeParameter('spriteOptions', i) as IDataObject
+            const body: IDataObject = { url, ...stripFalsy(opts) }
+
+            const response = await this.helpers.httpRequestWithAuthentication.call(
+              this, 'ilyworksApi',
+              { method: 'POST', url: `${baseUrl}/v1/video/sprite`, body, json: true },
             )
             returnData.push({ json: response as IDataObject })
           }
@@ -619,6 +922,20 @@ export class Ilyworks implements INodeType {
           }
         }
 
+        // ── SIGN ─────────────────────────────────────────────────────────────
+        else if (resource === 'sign') {
+
+          if (operation === 'signUrl') {
+            const url = this.getNodeParameter('signUrl', i) as string
+            const ttl = this.getNodeParameter('ttl', i) as number
+            const response = await this.helpers.httpRequestWithAuthentication.call(
+              this, 'ilyworksApi',
+              { method: 'POST', url: `${baseUrl}/v1/sign`, body: { url, ttl }, json: true },
+            )
+            returnData.push({ json: response as IDataObject })
+          }
+        }
+
       } catch (error) {
         if (this.continueOnFail()) {
           returnData.push({ json: { error: (error as Error).message }, pairedItem: i })
@@ -662,4 +979,3 @@ function stripFalsy(obj: IDataObject): IDataObject {
     Object.entries(obj).filter(([, v]) => v !== 0 && v !== false && v !== '' && v !== undefined),
   )
 }
-
