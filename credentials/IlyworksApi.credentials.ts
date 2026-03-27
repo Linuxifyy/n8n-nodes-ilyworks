@@ -1,4 +1,4 @@
-import type { ICredentialType, INodeProperties } from 'n8n-workflow'
+import type { ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow'
 
 export class IlyworksApi implements ICredentialType {
   name = 'ilyworksApi'
@@ -20,7 +20,7 @@ export class IlyworksApi implements ICredentialType {
       name: 'baseUrl',
       type: 'string',
       default: 'https://api.ilyworks.nl',
-      description: 'Base URL of the Ilyworks API',
+      description: 'Base URL of the Ilyworks API. Only change this if you self-host.',
     },
   ]
 
@@ -33,10 +33,13 @@ export class IlyworksApi implements ICredentialType {
     },
   }
 
-  test = {
+  test: ICredentialTestRequest = {
     request: {
       baseURL: '={{$credentials.baseUrl}}',
-      url: '/health',
+      url: '/v1/image/info',
+      qs: {
+        url: 'https://picsum.photos/50',
+      },
     },
   }
 }
