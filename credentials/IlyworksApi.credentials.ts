@@ -4,7 +4,6 @@ export class IlyworksApi implements ICredentialType {
   name = 'ilyworksApi'
   displayName = 'Ilyworks API'
   documentationUrl = 'https://api.ilyworks.nl/#docs'
-  icon = 'file:../nodes/Ilyworks/ilyworks.svg'
 
   properties: INodeProperties[] = [
     {
@@ -14,15 +13,14 @@ export class IlyworksApi implements ICredentialType {
       typeOptions: { password: true },
       default: '',
       required: true,
-      description:
-        'Your Ilyworks API key. Get one for free at https://api.ilyworks.nl',
+      description: 'Your Ilyworks API key. Get one for free at https://api.ilyworks.nl.',
     },
     {
       displayName: 'Base URL',
       name: 'baseUrl',
       type: 'string',
       default: 'https://api.ilyworks.nl',
-      description: 'Base URL of the Ilyworks API (change only for self-hosted instances)',
+      description: 'Base URL of the Ilyworks API',
     },
   ]
 

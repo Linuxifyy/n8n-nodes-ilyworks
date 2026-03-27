@@ -1,10 +1,11 @@
 import type {
+  IDataObject,
   IExecuteFunctions,
   INodeExecutionData,
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow'
-import { NodeConnectionType, NodeOperationError } from 'n8n-workflow'
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow'
 
 export class Ilyworks implements INodeType {
   description: INodeTypeDescription = {
@@ -16,8 +17,8 @@ export class Ilyworks implements INodeType {
     subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
     description: 'Transform images and video with the Ilyworks media API',
     defaults: { name: 'Ilyworks' },
-    inputs: [NodeConnectionType.Main],
-    outputs: [NodeConnectionType.Main],
+    inputs: ['main'],
+    outputs: ['main'],
     credentials: [
       {
         name: 'ilyworksApi',
@@ -117,7 +118,7 @@ export class Ilyworks implements INodeType {
           {
             name: 'Download Result',
             value: 'download',
-            description: 'Download the output file of a completed job',
+            description: 'Download the output file of a completed job as binary',
             action: 'Download job result',
           },
           {
@@ -139,10 +140,7 @@ export class Ilyworks implements INodeType {
         required: true,
         description: 'URL of the source image to transform',
         displayOptions: {
-          show: {
-            resource: ['image'],
-            operation: ['transform', 'info'],
-          },
+          show: { resource: ['image'], operation: ['transform', 'info'] },
         },
       },
       {
@@ -153,10 +151,7 @@ export class Ilyworks implements INodeType {
         required: true,
         description: 'URL of the source video',
         displayOptions: {
-          show: {
-            resource: ['video'],
-            operation: ['transcode', 'repost', 'thumbnail'],
-          },
+          show: { resource: ['video'], operation: ['transcode', 'repost', 'thumbnail'] },
         },
       },
 
@@ -199,11 +194,11 @@ export class Ilyworks implements INodeType {
         name: 'format',
         type: 'options',
         options: [
-          { name: 'WebP (default)', value: 'webp' },
           { name: 'AVIF', value: 'avif' },
+          { name: 'GIF', value: 'gif' },
           { name: 'JPEG', value: 'jpeg' },
           { name: 'PNG', value: 'png' },
-          { name: 'GIF', value: 'gif' },
+          { name: 'WebP (Default)', value: 'webp' },
         ],
         default: 'webp',
         displayOptions: {
@@ -215,8 +210,8 @@ export class Ilyworks implements INodeType {
         name: 'fit',
         type: 'options',
         options: [
-          { name: 'Cover (default)', value: 'cover' },
           { name: 'Contain', value: 'contain' },
+          { name: 'Cover (Default)', value: 'cover' },
           { name: 'Fill', value: 'fill' },
           { name: 'Inside', value: 'inside' },
           { name: 'Outside', value: 'outside' },
@@ -247,55 +242,54 @@ export class Ilyworks implements INodeType {
           show: { resource: ['image'], operation: ['transform', 'upload'] },
         },
         options: [
+          { displayName: 'Auto-Trim Whitespace', name: 'trim', type: 'boolean', default: false },
+          { displayName: 'Background Color (Hex)', name: 'bg', type: 'string', default: '' },
           { displayName: 'Blur', name: 'blur', type: 'number', default: 0, description: 'Gaussian blur sigma (0.3–1000)' },
-          { displayName: 'Sharpen', name: 'sharpen', type: 'number', default: 0, description: 'Sharpen sigma (e.g. 1)' },
+          { displayName: 'Border Color (Hex)', name: 'border_color', type: 'color', default: '' },
+          { displayName: 'Border Width (Px)', name: 'border', type: 'number', default: 0 },
+          { displayName: 'Brightness', name: 'brightness', type: 'number', default: 1, description: '1 = no change' },
+          { displayName: 'Contrast', name: 'contrast', type: 'number', default: 1 },
+          { displayName: 'Corner Radius (Px)', name: 'radius', type: 'number', default: 0, description: 'PNG/WebP only' },
+          { displayName: 'Flip (Vertical)', name: 'flip', type: 'boolean', default: false },
+          { displayName: 'Flop (Horizontal)', name: 'flop', type: 'boolean', default: false },
           { displayName: 'Grayscale', name: 'grayscale', type: 'boolean', default: false },
-          { displayName: 'Sepia', name: 'sepia', type: 'boolean', default: false },
+          { displayName: 'Hue (Degrees)', name: 'hue', type: 'number', default: 0 },
           { displayName: 'Negate', name: 'negate', type: 'boolean', default: false },
-          { displayName: 'Flip (vertical)', name: 'flip', type: 'boolean', default: false },
-          { displayName: 'Flop (horizontal)', name: 'flop', type: 'boolean', default: false },
-          { displayName: 'Rotate (degrees)', name: 'rotate', type: 'number', default: 0 },
-          { displayName: 'Brightness (multiplier)', name: 'brightness', type: 'number', default: 1, description: '1 = no change, 0.5 = half, 2 = double' },
-          { displayName: 'Contrast (multiplier)', name: 'contrast', type: 'number', default: 1 },
-          { displayName: 'Saturation (multiplier)', name: 'saturation', type: 'number', default: 1 },
-          { displayName: 'Hue (degrees)', name: 'hue', type: 'number', default: 0 },
-          { displayName: 'Tint (hex)', name: 'tint', type: 'string', default: '', description: 'Hex colour e.g. ff6600' },
-          { displayName: 'Watermark Text', name: 'watermark', type: 'string', default: '' },
+          { displayName: 'Padding (Px)', name: 'pad', type: 'number', default: 0 },
+          { displayName: 'Rotate (Degrees)', name: 'rotate', type: 'number', default: 0 },
+          { displayName: 'Saturation', name: 'saturation', type: 'number', default: 1 },
+          { displayName: 'Sepia', name: 'sepia', type: 'boolean', default: false },
+          { displayName: 'Sharpen', name: 'sharpen', type: 'number', default: 0 },
+          { displayName: 'Tint (Hex)', name: 'tint', type: 'string', default: '' },
           {
             displayName: 'Watermark Position',
             name: 'watermark_pos',
             type: 'options',
             options: [
-              { name: 'Southeast (default)', value: 'southeast' },
-              { name: 'Northwest', value: 'northwest' },
-              { name: 'North', value: 'north' },
-              { name: 'Northeast', value: 'northeast' },
-              { name: 'West', value: 'west' },
               { name: 'Center', value: 'center' },
               { name: 'East', value: 'east' },
-              { name: 'Southwest', value: 'southwest' },
+              { name: 'North', value: 'north' },
+              { name: 'Northeast', value: 'northeast' },
+              { name: 'Northwest', value: 'northwest' },
               { name: 'South', value: 'south' },
+              { name: 'Southeast (Default)', value: 'southeast' },
+              { name: 'Southwest', value: 'southwest' },
+              { name: 'West', value: 'west' },
             ],
             default: 'southeast',
           },
-          { displayName: 'Padding (px)', name: 'pad', type: 'number', default: 0 },
-          { displayName: 'Background Color (hex)', name: 'bg', type: 'string', default: '' },
-          { displayName: 'Border Width (px)', name: 'border', type: 'number', default: 0 },
-          { displayName: 'Border Color (hex)', name: 'border_color', type: 'string', default: '000000' },
-          { displayName: 'Corner Radius (px)', name: 'radius', type: 'number', default: 0, description: 'Rounded corners (PNG/WebP only)' },
-          { displayName: 'Auto-trim Whitespace', name: 'trim', type: 'boolean', default: false },
+          { displayName: 'Watermark Text', name: 'watermark', type: 'string', default: '' },
         ],
       },
       {
-        displayName: 'Return',
+        displayName: 'Return As',
         name: 'returnType',
         type: 'options',
         options: [
-          { name: 'Binary (image file)', value: 'binary' },
-          { name: 'URL string', value: 'url' },
+          { name: 'Binary (Image File)', value: 'binary' },
+          { name: 'URL String', value: 'url' },
         ],
         default: 'binary',
-        description: 'Whether to return the image as binary data or as a URL string',
         displayOptions: {
           show: { resource: ['image'], operation: ['transform'] },
         },
@@ -307,7 +301,7 @@ export class Ilyworks implements INodeType {
         name: 'format',
         type: 'options',
         options: [
-          { name: 'MP4 (default)', value: 'mp4' },
+          { name: 'MP4 (Default)', value: 'mp4' },
           { name: 'WebM', value: 'webm' },
         ],
         default: 'mp4',
@@ -325,14 +319,14 @@ export class Ilyworks implements INodeType {
           show: { resource: ['video'], operation: ['transcode'] },
         },
         options: [
-          { displayName: 'Width (px)', name: 'w', type: 'number', default: 0 },
-          { displayName: 'Height (px)', name: 'h', type: 'number', default: 0 },
-          { displayName: 'Framerate (fps)', name: 'fps', type: 'number', default: 0 },
-          { displayName: 'Trim Start (seconds)', name: 'start', type: 'number', default: 0 },
-          { displayName: 'Trim End (seconds)', name: 'end', type: 'number', default: 0 },
-          { displayName: 'Quality (CRF 0–51, lower = better)', name: 'q', type: 'number', default: 23 },
+          { displayName: 'Framerate (Fps)', name: 'fps', type: 'number', default: 0 },
+          { displayName: 'Height (Px)', name: 'h', type: 'number', default: 0 },
           { displayName: 'Include Audio', name: 'audio', type: 'boolean', default: true },
+          { displayName: 'Quality CRF (0–51, Lower = Better)', name: 'q', type: 'number', default: 23 },
           { displayName: 'Strip Metadata', name: 'strip_meta', type: 'boolean', default: true },
+          { displayName: 'Trim End (Seconds)', name: 'end', type: 'number', default: 0 },
+          { displayName: 'Trim Start (Seconds)', name: 'start', type: 'number', default: 0 },
+          { displayName: 'Width (Px)', name: 'w', type: 'number', default: 0 },
         ],
       },
 
@@ -342,11 +336,11 @@ export class Ilyworks implements INodeType {
         name: 'platform',
         type: 'options',
         options: [
-          { name: 'TikTok (1080×1920, 9:16)', value: 'tiktok' },
-          { name: 'Instagram Reels (1080×1920, 9:16)', value: 'reels' },
-          { name: 'Instagram (1080×1920, 9:16)', value: 'instagram' },
-          { name: 'YouTube (1920×1080, 16:9)', value: 'youtube' },
-          { name: 'Twitter (1280×720, 16:9)', value: 'twitter' },
+          { name: 'Instagram — 1080×1920 (9:16)', value: 'instagram' },
+          { name: 'Instagram Reels — 1080×1920 (9:16)', value: 'reels' },
+          { name: 'TikTok — 1080×1920 (9:16)', value: 'tiktok' },
+          { name: 'Twitter — 1280×720 (16:9)', value: 'twitter' },
+          { name: 'YouTube — 1920×1080 (16:9)', value: 'youtube' },
         ],
         default: 'tiktok',
         required: true,
@@ -369,7 +363,7 @@ export class Ilyworks implements INodeType {
             name: 'effect',
             type: 'options',
             options: [
-              { name: 'None (default)', value: 'none' },
+              { name: 'None', value: 'none' },
               { name: 'Grain', value: 'grain' },
               { name: 'Vignette', value: 'vignette' },
               { name: 'Saturation Boost', value: 'saturation_boost' },
@@ -384,7 +378,7 @@ export class Ilyworks implements INodeType {
 
       // ── Video: thumbnail params ───────────────────────────────────────────
       {
-        displayName: 'Timestamp (seconds)',
+        displayName: 'Timestamp (Seconds)',
         name: 'at',
         type: 'number',
         default: 0,
@@ -398,7 +392,7 @@ export class Ilyworks implements INodeType {
         name: 'thumbFormat',
         type: 'options',
         options: [
-          { name: 'JPEG (default)', value: 'jpeg' },
+          { name: 'JPEG (Default)', value: 'jpeg' },
           { name: 'PNG', value: 'png' },
           { name: 'WebP', value: 'webp' },
         ],
@@ -408,51 +402,39 @@ export class Ilyworks implements INodeType {
         },
       },
 
-      // ── Job: shared jobId ─────────────────────────────────────────────────
+      // ── Job params ────────────────────────────────────────────────────────
       {
         displayName: 'Job ID',
         name: 'jobId',
         type: 'string',
         default: '',
         required: true,
-        description: 'The jobId returned by a video operation',
-        displayOptions: {
-          show: { resource: ['job'] },
-        },
+        description: 'The jobId returned by a video submit operation',
+        displayOptions: { show: { resource: ['job'] } },
       },
-
-      // ── Job: wait options ─────────────────────────────────────────────────
       {
-        displayName: 'Poll Interval (seconds)',
+        displayName: 'Poll Interval (Seconds)',
         name: 'pollInterval',
         type: 'number',
         default: 3,
         typeOptions: { minValue: 1, maxValue: 30 },
-        displayOptions: {
-          show: { resource: ['job'], operation: ['wait'] },
-        },
+        displayOptions: { show: { resource: ['job'], operation: ['wait'] } },
       },
       {
-        displayName: 'Timeout (seconds)',
+        displayName: 'Timeout (Seconds)',
         name: 'timeout',
         type: 'number',
         default: 300,
-        description: 'Give up and throw an error after this many seconds',
-        displayOptions: {
-          show: { resource: ['job'], operation: ['wait'] },
-        },
+        description: 'Throw an error if job does not complete within this time',
+        displayOptions: { show: { resource: ['job'], operation: ['wait'] } },
       },
-
-      // ── Job download: binary property name ───────────────────────────────
       {
         displayName: 'Output Binary Property',
         name: 'outputBinaryProperty',
         type: 'string',
         default: 'data',
-        description: 'Name of the binary property to write the downloaded video into',
-        displayOptions: {
-          show: { resource: ['job'], operation: ['download'] },
-        },
+        description: 'Binary property name to write the downloaded video into',
+        displayOptions: { show: { resource: ['job'], operation: ['download'] } },
       },
     ],
   }
@@ -476,27 +458,22 @@ export class Ilyworks implements INodeType {
             const returnType = this.getNodeParameter('returnType', i) as string
             const qs = buildImageQs(this, i, { url })
 
-            const response = await this.helpers.httpRequestWithAuthentication.call(
-              this, 'ilyworksApi',
-              {
-                method: 'GET',
-                url: `${baseUrl}/v1/transform`,
-                qs,
-                encoding: 'arraybuffer',
-                returnFullResponse: true,
-              },
-            )
-
             if (returnType === 'url') {
-              returnData.push({ json: { transformedUrl: `${baseUrl}/v1/transform?${new URLSearchParams(qs as Record<string, string>)}` } })
+              const transformedUrl = `${baseUrl}/v1/transform?${new URLSearchParams(qs as Record<string, string>)}`
+              returnData.push({ json: { transformedUrl } })
             } else {
-              const contentType = (response.headers as Record<string, string>)['content-type'] || 'image/webp'
-              const ext = contentType.split('/')[1] || 'webp'
+              const response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'GET', url: `${baseUrl}/v1/transform`, qs, encoding: 'arraybuffer', returnFullResponse: true },
+              ) as { body: Buffer; headers: Record<string, string> }
+
+              const contentType = response.headers['content-type'] || 'image/webp'
+              const ext = contentType.split('/')[1]?.split(';')[0] || 'webp'
               returnData.push({
                 json: {},
                 binary: {
                   data: await this.helpers.prepareBinaryData(
-                    Buffer.from(response.body as Buffer),
+                    Buffer.from(response.body),
                     `transformed.${ext}`,
                     contentType,
                   ),
@@ -516,14 +493,9 @@ export class Ilyworks implements INodeType {
 
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
-              {
-                method: 'POST',
-                url: `${baseUrl}/v1/image/upload`,
-                qs,
-                body: formData,
-              },
+              { method: 'POST', url: `${baseUrl}/v1/image/upload`, qs, body: formData },
             )
-            returnData.push({ json: response as object })
+            returnData.push({ json: response as IDataObject })
           }
 
           else if (operation === 'info') {
@@ -532,7 +504,7 @@ export class Ilyworks implements INodeType {
               this, 'ilyworksApi',
               { method: 'GET', url: `${baseUrl}/v1/image/info`, qs: { url } },
             )
-            returnData.push({ json: response as object })
+            returnData.push({ json: response as IDataObject })
           }
         }
 
@@ -542,27 +514,27 @@ export class Ilyworks implements INodeType {
           if (operation === 'transcode') {
             const url = this.getNodeParameter('url', i) as string
             const format = this.getNodeParameter('format', i) as string
-            const opts = this.getNodeParameter('videoOptions', i) as Record<string, unknown>
-            const body: Record<string, unknown> = { url, format, ...stripFalsy(opts) }
+            const opts = this.getNodeParameter('videoOptions', i) as IDataObject
+            const body: IDataObject = { url, format, ...stripFalsy(opts) }
 
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
               { method: 'POST', url: `${baseUrl}/v1/video/transform`, body, json: true },
             )
-            returnData.push({ json: response as object })
+            returnData.push({ json: response as IDataObject })
           }
 
           else if (operation === 'repost') {
             const url = this.getNodeParameter('url', i) as string
             const platform = this.getNodeParameter('platform', i) as string
-            const opts = this.getNodeParameter('repostOptions', i) as Record<string, unknown>
-            const body: Record<string, unknown> = { url, platform, ...stripFalsy(opts) }
+            const opts = this.getNodeParameter('repostOptions', i) as IDataObject
+            const body: IDataObject = { url, platform, ...stripFalsy(opts) }
 
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
               { method: 'POST', url: `${baseUrl}/v1/video/repost`, body, json: true },
             )
-            returnData.push({ json: response as object })
+            returnData.push({ json: response as IDataObject })
           }
 
           else if (operation === 'thumbnail') {
@@ -572,15 +544,9 @@ export class Ilyworks implements INodeType {
 
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
-              {
-                method: 'POST',
-                url: `${baseUrl}/v1/video/thumbnail`,
-                qs: { format },
-                body: { url, at },
-                json: true,
-              },
+              { method: 'POST', url: `${baseUrl}/v1/video/thumbnail`, qs: { format }, body: { url, at }, json: true },
             )
-            returnData.push({ json: response as object })
+            returnData.push({ json: response as IDataObject })
           }
         }
 
@@ -593,27 +559,24 @@ export class Ilyworks implements INodeType {
               this, 'ilyworksApi',
               { method: 'GET', url: `${baseUrl}/v1/jobs/${jobId}` },
             )
-            returnData.push({ json: response as object })
+            returnData.push({ json: response as IDataObject })
           }
 
           else if (operation === 'download') {
             const outputProp = this.getNodeParameter('outputBinaryProperty', i) as string
+
             const response = await this.helpers.httpRequestWithAuthentication.call(
               this, 'ilyworksApi',
-              {
-                method: 'GET',
-                url: `${baseUrl}/v1/jobs/${jobId}/download`,
-                encoding: 'arraybuffer',
-                returnFullResponse: true,
-              },
-            )
-            const contentType = (response.headers as Record<string, string>)['content-type'] || 'video/mp4'
+              { method: 'GET', url: `${baseUrl}/v1/jobs/${jobId}/download`, encoding: 'arraybuffer', returnFullResponse: true },
+            ) as { body: Buffer; headers: Record<string, string> }
+
+            const contentType = response.headers['content-type'] || 'video/mp4'
             const ext = contentType === 'video/webm' ? 'webm' : 'mp4'
             returnData.push({
               json: {},
               binary: {
                 [outputProp]: await this.helpers.prepareBinaryData(
-                  Buffer.from(response.body as Buffer),
+                  Buffer.from(response.body),
                   `ilyworks_${jobId}.${ext}`,
                   contentType,
                 ),
@@ -622,32 +585,32 @@ export class Ilyworks implements INodeType {
           }
 
           else if (operation === 'wait') {
-            const pollInterval = (this.getNodeParameter('pollInterval', i) as number) * 1000
-            const timeout = (this.getNodeParameter('timeout', i) as number) * 1000
-            const deadline = Date.now() + timeout
+            const pollIntervalMs = (this.getNodeParameter('pollInterval', i) as number) * 1000
+            const timeoutMs = (this.getNodeParameter('timeout', i) as number) * 1000
+            const deadline = Date.now() + timeoutMs
 
-            let job: Record<string, unknown> = {}
+            let job: IDataObject = {}
             while (Date.now() < deadline) {
               job = await this.helpers.httpRequestWithAuthentication.call(
                 this, 'ilyworksApi',
                 { method: 'GET', url: `${baseUrl}/v1/jobs/${jobId}` },
-              ) as Record<string, unknown>
+              ) as IDataObject
 
               if (job.status === 'done') break
               if (job.status === 'failed') {
                 throw new NodeOperationError(
                   this.getNode(),
-                  `Job ${jobId} failed: ${job.error || 'unknown error'}`,
+                  `Job ${jobId} failed: ${String(job.error ?? 'unknown error')}`,
                   { itemIndex: i },
                 )
               }
-              await sleep(pollInterval)
+              await sleep(pollIntervalMs)
             }
 
             if (job.status !== 'done') {
               throw new NodeOperationError(
                 this.getNode(),
-                `Job ${jobId} did not complete within ${timeout / 1000}s`,
+                `Job ${jobId} did not complete within ${timeoutMs / 1000}s`,
                 { itemIndex: i },
               )
             }
@@ -674,16 +637,16 @@ export class Ilyworks implements INodeType {
 function buildImageQs(
   ctx: IExecuteFunctions,
   i: number,
-  base: Record<string, unknown>,
-): Record<string, unknown> {
+  base: IDataObject,
+): IDataObject {
   const w = ctx.getNodeParameter('w', i) as number
   const h = ctx.getNodeParameter('h', i) as number
   const format = ctx.getNodeParameter('format', i) as string
   const fit = ctx.getNodeParameter('fit', i) as string
   const q = ctx.getNodeParameter('q', i) as number
-  const opts = ctx.getNodeParameter('imageOptions', i) as Record<string, unknown>
+  const opts = ctx.getNodeParameter('imageOptions', i) as IDataObject
 
-  const qs: Record<string, unknown> = { ...base, format, fit, q }
+  const qs: IDataObject = { ...base, format, fit, q }
   if (w > 0) qs.w = w
   if (h > 0) qs.h = h
 
@@ -694,7 +657,7 @@ function buildImageQs(
   return qs
 }
 
-function stripFalsy(obj: Record<string, unknown>): Record<string, unknown> {
+function stripFalsy(obj: IDataObject): IDataObject {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== 0 && v !== false && v !== '' && v !== undefined),
   )
