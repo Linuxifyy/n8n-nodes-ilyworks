@@ -5,7 +5,7 @@ import type {
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow'
-import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow'
+import { NodeConnectionTypes, NodeOperationError, sleep } from 'n8n-workflow'
 
 export class Ilyworks implements INodeType {
   description: INodeTypeDescription = {
@@ -663,6 +663,3 @@ function stripFalsy(obj: IDataObject): IDataObject {
   )
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
