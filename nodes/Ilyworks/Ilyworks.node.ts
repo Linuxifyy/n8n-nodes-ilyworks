@@ -35,6 +35,7 @@ export class Ilyworks implements INodeType {
         noDataExpression: true,
         options: [
           { name: 'Image', value: 'image' },
+          { name: 'Image Store', value: 'imageStore' },
           { name: 'Job', value: 'job' },
           { name: 'Sign', value: 'sign' },
           { name: 'Video', value: 'video' },
@@ -81,6 +82,12 @@ export class Ilyworks implements INodeType {
             action: 'Transform an image from a URL',
           },
           {
+            name: 'Remove Background',
+            value: 'removebg',
+            description: 'Remove the background from an image using AI',
+            action: 'Remove image background',
+          },
+          {
             name: 'Upload & Transform',
             value: 'upload',
             description: 'Upload a binary image and apply transformations',
@@ -88,6 +95,36 @@ export class Ilyworks implements INodeType {
           },
         ],
         default: 'transform',
+      },
+
+      // ── Image Store operations ────────────────────────────────────────────
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        displayOptions: { show: { resource: ['imageStore'] } },
+        options: [
+          {
+            name: 'Delete',
+            value: 'delete',
+            description: 'Delete a stored image by ID',
+            action: 'Delete a stored image',
+          },
+          {
+            name: 'List',
+            value: 'list',
+            description: 'List all stored images for your API key',
+            action: 'List stored images',
+          },
+          {
+            name: 'Store',
+            value: 'store',
+            description: 'Store an image permanently with a stable URL',
+            action: 'Store an image permanently',
+          },
+        ],
+        default: 'store',
       },
 
       // ── Video operations ──────────────────────────────────────────────────
@@ -257,6 +294,7 @@ export class Ilyworks implements INodeType {
           { name: 'Contain', value: 'contain' },
           { name: 'Cover (Default)', value: 'cover' },
           { name: 'Entropy (Smart Crop)', value: 'entropy' },
+          { name: 'Face (Face-Centred Crop)', value: 'face' },
           { name: 'Fill', value: 'fill' },
           { name: 'Inside', value: 'inside' },
           { name: 'Outside', value: 'outside' },
@@ -455,6 +493,84 @@ export class Ilyworks implements INodeType {
         },
       },
 
+      // ── Image: removebg source ───────────────────────────────────────────
+      {
+        displayName: 'Image URL',
+        name: 'url',
+        type: 'string',
+        default: '',
+        description: 'URL of the image to remove background from (leave empty to use binary input)',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['removebg'] },
+        },
+      },
+      {
+        displayName: 'Binary Property',
+        name: 'removebgBinaryProperty',
+        type: 'string',
+        default: 'data',
+        description: 'Name of the binary property containing the image (used when URL is empty)',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['removebg'] },
+        },
+      },
+
+      // ── Image Store: store params ─────────────────────────────────────────
+      {
+        displayName: 'Image URL',
+        name: 'url',
+        type: 'string',
+        default: '',
+        description: 'URL of the image to store (leave empty to use binary input)',
+        displayOptions: {
+          show: { resource: ['imageStore'], operation: ['store'] },
+        },
+      },
+      {
+        displayName: 'Binary Property',
+        name: 'storeBinaryProperty',
+        type: 'string',
+        default: 'data',
+        description: 'Name of the binary property containing the image (used when URL is empty)',
+        displayOptions: {
+          show: { resource: ['imageStore'], operation: ['store'] },
+        },
+      },
+      {
+        displayName: 'Store Options',
+        name: 'storeOptions',
+        type: 'collection',
+        placeholder: 'Add option',
+        default: {},
+        displayOptions: {
+          show: { resource: ['imageStore'], operation: ['store'] },
+        },
+        options: [
+          { displayName: 'Format', name: 'format', type: 'options', options: [
+            { name: 'AVIF', value: 'avif' },
+            { name: 'JPEG', value: 'jpeg' },
+            { name: 'PNG', value: 'png' },
+            { name: 'WebP', value: 'webp' },
+          ], default: 'webp' },
+          { displayName: 'Height (Px)', name: 'h', type: 'number', default: 0 },
+          { displayName: 'Quality (1–100)', name: 'q', type: 'number', typeOptions: { minValue: 1, maxValue: 100 }, default: 80 },
+          { displayName: 'Width (Px)', name: 'w', type: 'number', default: 0 },
+        ],
+      },
+
+      // ── Image Store: delete / list params ────────────────────────────────
+      {
+        displayName: 'Image ID',
+        name: 'storeId',
+        type: 'string',
+        default: '',
+        required: true,
+        description: 'The ID of the stored image',
+        displayOptions: {
+          show: { resource: ['imageStore'], operation: ['delete'] },
+        },
+      },
+
       // ── Video: transcode params ───────────────────────────────────────────
       {
         displayName: 'Output Format',
@@ -499,9 +615,11 @@ export class Ilyworks implements INodeType {
         options: [
           { name: 'Instagram — 1080×1920 (9:16)', value: 'instagram' },
           { name: 'Instagram Reels — 1080×1920 (9:16)', value: 'reels' },
+          { name: 'LinkedIn — 1920×1080 (16:9)', value: 'linkedin' },
           { name: 'TikTok — 1080×1920 (9:16)', value: 'tiktok' },
-          { name: 'Twitter — 1280×720 (16:9)', value: 'twitter' },
+          { name: 'Twitter / X — 1280×720 (16:9)', value: 'twitter' },
           { name: 'YouTube — 1920×1080 (16:9)', value: 'youtube' },
+          { name: 'YouTube Shorts — 1080×1920 (9:16)', value: 'shorts' },
         ],
         default: 'tiktok',
         required: true,
@@ -525,15 +643,33 @@ export class Ilyworks implements INodeType {
             name: 'effect',
             type: 'options',
             options: [
+              { name: 'Cinematic (Cool Shadows, Warm Highlights, Bars)', value: 'cinematic' },
+              { name: 'Dramatic (High Contrast, Desaturated, Vignette)', value: 'dramatic' },
+              { name: 'Fade (Lifted Blacks, Matte Look)', value: 'fade' },
+              { name: 'Frame Blend (Motion Blur, Smooth)', value: 'frame_blend' },
               { name: 'Grain', value: 'grain' },
               { name: 'None', value: 'none' },
+              { name: 'Punch (High Contrast, Vivid)', value: 'punch' },
               { name: 'Saturation Boost', value: 'saturation_boost' },
               { name: 'Vignette', value: 'vignette' },
+              { name: 'Vintage (Warm, Faded, Grain)', value: 'vintage' },
             ],
             default: 'none',
           },
+          {
+            displayName: 'Fill Mode',
+            name: 'fill',
+            type: 'options',
+            options: [
+              { name: 'Letterbox — Black Bars (Default)', value: 'letterbox' },
+              { name: 'Crop — Fill Frame, May Clip Edges', value: 'crop' },
+            ],
+            default: 'letterbox',
+          },
           { displayName: 'Normalize Audio (–23 LUFS)', name: 'audio_norm', type: 'boolean', default: true },
-          { displayName: 'Strip Metadata', name: 'strip_meta', type: 'boolean', default: true },
+          { displayName: 'Pitch Shift (Semitones, −6 to +6)', name: 'pitch', type: 'number', typeOptions: { minValue: -6, maxValue: 6 }, default: 0, description: 'Shift audio pitch without changing tempo' },
+          { displayName: 'Replace Metadata', name: 'replace_meta', type: 'boolean', default: true, description: 'Replace container metadata with generic values' },
+          { displayName: 'Speed (0.25–4.0)', name: 'speed', type: 'number', typeOptions: { minValue: 0.25, maxValue: 4 }, default: 1, description: 'Playback speed multiplier' },
           { displayName: 'Watermark Text', name: 'watermark', type: 'string', default: '' },
         ],
       },
@@ -792,6 +928,85 @@ export class Ilyworks implements INodeType {
                 ),
               },
             })
+          }
+
+          else if (operation === 'removebg') {
+            const url = this.getNodeParameter('url', i) as string
+
+            let response: { body: Buffer; headers: Record<string, string> }
+            if (url) {
+              response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'POST', url: `${baseUrl}/v1/image/removebg`, qs: { url }, encoding: 'arraybuffer', returnFullResponse: true },
+              ) as typeof response
+            } else {
+              const binaryProp = this.getNodeParameter('removebgBinaryProperty', i) as string
+              const binaryData = this.helpers.assertBinaryData(i, binaryProp)
+              const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProp)
+              const formData = new FormData()
+              formData.append('file', new Blob([buffer], { type: binaryData.mimeType }), binaryData.fileName || 'upload')
+              response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'POST', url: `${baseUrl}/v1/image/removebg`, body: formData, encoding: 'arraybuffer', returnFullResponse: true },
+              ) as typeof response
+            }
+
+            returnData.push({
+              json: {},
+              binary: {
+                data: await this.helpers.prepareBinaryData(
+                  Buffer.from(response.body),
+                  'background_removed.png',
+                  'image/png',
+                ),
+              },
+            })
+          }
+        }
+
+        // ── IMAGE STORE ─────────────────────────────────────────────────────
+        else if (resource === 'imageStore') {
+
+          if (operation === 'store') {
+            const url = this.getNodeParameter('url', i) as string
+            const opts = this.getNodeParameter('storeOptions', i) as IDataObject
+            const qs = stripFalsy(opts)
+
+            let response: IDataObject
+            if (url) {
+              response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'POST', url: `${baseUrl}/v1/image/store`, qs: { url, ...qs } },
+              ) as IDataObject
+            } else {
+              const binaryProp = this.getNodeParameter('storeBinaryProperty', i) as string
+              const binaryData = this.helpers.assertBinaryData(i, binaryProp)
+              const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProp)
+              const formData = new FormData()
+              formData.append('file', new Blob([buffer], { type: binaryData.mimeType }), binaryData.fileName || 'upload')
+              response = await this.helpers.httpRequestWithAuthentication.call(
+                this, 'ilyworksApi',
+                { method: 'POST', url: `${baseUrl}/v1/image/store`, qs, body: formData },
+              ) as IDataObject
+            }
+            returnData.push({ json: response })
+          }
+
+          else if (operation === 'list') {
+            const response = await this.helpers.httpRequestWithAuthentication.call(
+              this, 'ilyworksApi',
+              { method: 'GET', url: `${baseUrl}/v1/image/store` },
+            )
+            returnData.push({ json: response as IDataObject })
+          }
+
+          else if (operation === 'delete') {
+            const id = this.getNodeParameter('storeId', i) as string
+            const response = await this.helpers.httpRequestWithAuthentication.call(
+              this, 'ilyworksApi',
+              { method: 'DELETE', url: `${baseUrl}/v1/image/store/${id}` },
+            )
+            returnData.push({ json: response as IDataObject })
           }
         }
 
