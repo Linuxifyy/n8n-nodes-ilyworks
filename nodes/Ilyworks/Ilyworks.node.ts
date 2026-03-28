@@ -70,6 +70,12 @@ export class Ilyworks implements INodeType {
             action: 'Generate an image placeholder',
           },
           {
+            name: 'Remove Background',
+            value: 'removebg',
+            description: 'Remove the background from an image using AI',
+            action: 'Remove image background',
+          },
+          {
             name: 'Transform (URL Path)',
             value: 'transformPath',
             description: 'Apply transforms via URL path and return the resulting image',
@@ -80,12 +86,6 @@ export class Ilyworks implements INodeType {
             value: 'transform',
             description: 'Fetch, transform, and cache an image from a URL',
             action: 'Transform an image from a URL',
-          },
-          {
-            name: 'Remove Background',
-            value: 'removebg',
-            description: 'Remove the background from an image using AI',
-            action: 'Remove image background',
           },
           {
             name: 'Upload & Transform',
@@ -668,7 +668,7 @@ export class Ilyworks implements INodeType {
           },
           { displayName: 'Normalize Audio (–23 LUFS)', name: 'audio_norm', type: 'boolean', default: true },
           { displayName: 'Pitch Shift (Semitones, −6 to +6)', name: 'pitch', type: 'number', typeOptions: { minValue: -6, maxValue: 6 }, default: 0, description: 'Shift audio pitch without changing tempo' },
-          { displayName: 'Replace Metadata', name: 'replace_meta', type: 'boolean', default: true, description: 'Replace container metadata with generic values' },
+          { displayName: 'Replace Metadata', name: 'replace_meta', type: 'boolean', default: true, description: 'Whether to replace container metadata with generic values' },
           { displayName: 'Speed (0.25–4.0)', name: 'speed', type: 'number', typeOptions: { minValue: 0.25, maxValue: 4 }, default: 1, description: 'Playback speed multiplier' },
           { displayName: 'Watermark Text', name: 'watermark', type: 'string', default: '' },
         ],
